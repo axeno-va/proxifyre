@@ -2,6 +2,8 @@
 // ReSharper disable CppExpressionWithoutSideEffects
 #pragma once
 
+#include "https_connect.h"
+
 namespace proxy
 {
     /**
@@ -674,9 +676,21 @@ namespace proxy
                 return false;
             }
 
-            if (!perform_tls_socks5_connect(negotiate_context))
+            bool connected;
+            if (negotiate_context.upstream_options.transport == socks5_transport::https)
             {
-                NETLIB_WARNING("SOCKS5Tls CONNECT negotiation failed: {}", tls_negotiation_error_);
+                auto host = static_cast<std::string>(negotiate_context.remote_address);
+                if constexpr (address_type_t::af_type == AF_INET6) host = "[" + host + "]";
+                connected = https_connect(*tls_stream_, host + ":" + std::to_string(negotiate_context.remote_port),
+                    negotiate_context.socks5_username, negotiate_context.socks5_password, tls_negotiation_error_);
+            }
+            else
+            {
+                connected = perform_tls_socks5_connect(negotiate_context);
+            }
+            if (!connected)
+            {
+                NETLIB_WARNING("Upstream CONNECT negotiation failed: {}", tls_negotiation_error_);
                 tcp_proxy_socket<T>::close_client(false, false);
                 return false;
             }

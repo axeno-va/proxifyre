@@ -106,7 +106,8 @@ namespace Socksifier
         /// <summary>Plain TCP transport.</summary>
         TCP,
         /// <summary>TLS-wrapped TCP transport.</summary>
-        TLS
+        TLS,
+        HTTPS
     };
 
     /// <summary>

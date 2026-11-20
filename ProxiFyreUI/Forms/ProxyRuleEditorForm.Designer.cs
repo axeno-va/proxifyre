@@ -190,7 +190,7 @@ namespace ProxiFyreUI.Forms
             this.proxyGroupBox.Size = new System.Drawing.Size(820, 132);
             this.proxyGroupBox.TabIndex = 1;
             this.proxyGroupBox.TabStop = false;
-            this.proxyGroupBox.Text = "SOCKS5 endpoint and authentication (credentials: 255 encoded bytes each)";
+            this.proxyGroupBox.Text = "Proxy endpoint and authentication";
             this.hostLabel.AutoSize = true;
             this.hostLabel.Location = new System.Drawing.Point(12, 27);
             this.hostLabel.Name = "hostLabel";
@@ -328,7 +328,7 @@ namespace ProxiFyreUI.Forms
             this.transportLabel.Text = "Transport:";
             this.transportComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.transportComboBox.FormattingEnabled = true;
-            this.transportComboBox.Items.AddRange(new object[] { "Plain SOCKS5 over TCP", "SOCKS5 over TLS" });
+            this.transportComboBox.Items.AddRange(new object[] { "Plain SOCKS5 over TCP", "SOCKS5 over TLS", "HTTPS proxy (CONNECT)" });
             this.transportComboBox.Location = new System.Drawing.Point(124, 23);
             this.transportComboBox.Name = "transportComboBox";
             this.transportComboBox.Size = new System.Drawing.Size(237, 23);

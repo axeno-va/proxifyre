@@ -164,20 +164,33 @@ namespace ProxiFyre.Configuration
                     index));
             }
 
-            ValidateCredentialLength(
-                rule.Username,
-                "AUTH_USERNAME_TOO_LONG",
-                "The username must encode to no more than 255 bytes for SOCKS5 authentication.",
-                prefix + ".username",
-                index,
-                issues);
-            ValidateCredentialLength(
-                rule.Password,
-                "AUTH_PASSWORD_TOO_LONG",
-                "The password must encode to no more than 255 bytes for SOCKS5 authentication.",
-                prefix + ".password",
-                index,
-                issues);
+            string transport;
+            ConfigurationNormalizer.TryGetCanonicalTransport(rule.Socks5Transport, out transport);
+            if (transport == "HTTPS")
+            {
+                if (hasUsername && rule.Username.Contains(":"))
+                    issues.Add(Error("BASIC_USERNAME_COLON", "A Basic authentication username cannot contain a colon.", prefix + ".username", index));
+                if (new[] { rule.Username, rule.Password }.Any(value => value != null &&
+                    (value.Any(char.IsControl) || System.Text.Encoding.UTF8.GetByteCount(value) > 4096)))
+                    issues.Add(Error("BASIC_CREDENTIAL_INVALID", "Basic credentials must contain no control characters and be at most 4096 UTF-8 bytes each.", prefix + ".username", index));
+            }
+            else
+            {
+                ValidateCredentialLength(
+                    rule.Username,
+                    "AUTH_USERNAME_TOO_LONG",
+                    "The username must encode to no more than 255 bytes for SOCKS5 authentication.",
+                    prefix + ".username",
+                    index,
+                    issues);
+                ValidateCredentialLength(
+                    rule.Password,
+                    "AUTH_PASSWORD_TOO_LONG",
+                    "The password must encode to no more than 255 bytes for SOCKS5 authentication.",
+                    prefix + ".password",
+                    index,
+                    issues);
+            }
 
             ValidateApplications(rule.AppNames, prefix, index, issues);
             ValidateProtocols(rule.SupportedProtocols, prefix, index, issues);
@@ -366,13 +379,17 @@ namespace ProxiFyre.Configuration
             {
                 issues.Add(Error(
                     "TRANSPORT_UNKNOWN",
-                    "The SOCKS5 transport must be TCP or TLS.",
+                    "Select TCP, TLS or HTTPS for the upstream proxy.",
                     prefix + ".socks5Transport",
                     ruleIndex));
                 return;
             }
 
-            if (transport != "TLS")
+            if (transport == "HTTPS" && (rule.SupportedProtocols == null ||
+                rule.SupportedProtocols.Count == 0 || rule.SupportedProtocols.Any(p => !string.Equals(p, "TCP", StringComparison.OrdinalIgnoreCase))))
+                issues.Add(Error("HTTPS_REQUIRES_TCP", "For HTTPS CONNECT select TCP only.", prefix + ".supportedProtocols", ruleIndex));
+
+            if (transport != "TLS" && transport != "HTTPS")
                 return;
 
             if (!string.IsNullOrWhiteSpace(rule.TlsPinnedSha256))

@@ -169,6 +169,12 @@ namespace ProxiFyre.Configuration
                 return true;
             }
 
+            if (string.Equals(transport, "HTTPS", StringComparison.OrdinalIgnoreCase))
+            {
+                canonical = "HTTPS";
+                return true;
+            }
+
             canonical = null;
             return false;
         }

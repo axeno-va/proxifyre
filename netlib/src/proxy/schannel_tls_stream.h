@@ -258,6 +258,36 @@ namespace proxy
             return encrypted.empty() || raw_send_all(encrypted.data(), static_cast<int>(encrypted.size()));
         }
 
+        // Consume exactly one HTTP response head and keep any coalesced tunnel data
+        // in decrypted_buffer_ for the normal TLS relay. One deadline covers all reads.
+        [[nodiscard]] bool recv_http_headers(std::string& headers)
+        {
+            constexpr size_t max_size = 32768;
+            receive_deadline_guard deadline{ *this };
+            headers.clear();
+            while (headers.size() < max_size)
+            {
+                if (decrypted_buffer_.empty() && !decrypt_next_record())
+                {
+                    if (last_error_.empty()) last_error_ = "TLS stream closed during HTTP CONNECT.";
+                    return false;
+                }
+                const auto previous = headers.size();
+                const auto count = std::min(decrypted_buffer_.size(), max_size - previous);
+                headers.append(decrypted_buffer_.data(), count);
+                const auto end = headers.find("\r\n\r\n", previous > 3 ? previous - 3 : 0);
+                const auto consumed = end == std::string::npos ? count : end + 4 - previous;
+                decrypted_buffer_.erase(decrypted_buffer_.begin(), decrypted_buffer_.begin() + consumed);
+                if (end != std::string::npos)
+                {
+                    headers.resize(end + 4);
+                    return true;
+                }
+            }
+            last_error_ = "HTTP CONNECT response headers exceed 32 KiB.";
+            return false;
+        }
+
         [[nodiscard]] bool recv_exact(void* const data, const int length)
         {
             if (!handshake_complete_)

@@ -42,6 +42,7 @@ namespace
         uint16_t udp4_port{ 40002 };
         uint16_t tcp6_port{ 40003 };
         uint16_t udp6_port{ 40004 };
+        bool block_unsupported_transport{};
     };
 
     struct routing_config
@@ -64,7 +65,7 @@ namespace
             constexpr bool v4 = Family == owner_family::ipv4;
             const uint16_t port = tcp ? (v4 ? p.tcp4_port : p.tcp6_port) : (v4 ? p.udp4_port : p.udp6_port);
             return { tcp ? p.tcp : p.udp, v4 ? p.ipv4 : p.ipv6,
-                port ? std::optional<uint16_t>{ port } : std::nullopt };
+                port ? std::optional<uint16_t>{ port } : std::nullopt, p.block_unsupported_transport };
         }
 
         /// The handler's owner decision for one packet of @p owner.
@@ -217,6 +218,22 @@ namespace
         for (uint16_t i = 0; i < 10; ++i)
             expect_route(config.route<tcp, ipv4>(tcp4(l4, static_cast<uint16_t>(2000 + i))), proxy_port_action::proxy, 40001);
         EXPECT_FALSE(tcp4(l4, 2000)->excluded);
+    }
+
+    TEST_F(OwnerRoutingPolicyTest, HttpsBlocksMatchedUdpAndKeepsTcpProxied)
+    {
+        os().images[3600] = image(L"CODEX.EXE");
+        add_everywhere(3600, 1000);
+        routing_config config;
+        config.proxies.push_back({});
+        config.proxies.front().udp = false;
+        config.proxies.front().block_unsupported_transport = true;
+        config.proxy_to_names.emplace(0, L"CODEX");
+        lookup_v4 l4;
+        lookup_v6 l6;
+        expect_route(config.route<udp, ipv4>(udp4(l4, 1000)), proxy_port_action::block);
+        expect_route(config.route<udp, ipv6>(udp6(l6, 1000)), proxy_port_action::block);
+        expect_route(config.route<tcp, ipv4>(tcp4(l4, 1000)), proxy_port_action::proxy, 40001);
     }
 
     TEST_F(OwnerRoutingPolicyTest, TransportBypassStaysWithItsProtocolTable)

@@ -25,7 +25,8 @@ namespace ProxiFyre.Configuration
     public enum Socks5TransportKind
     {
         Tcp,
-        Tls
+        Tls,
+        Https
     }
 
     public enum ConfigurationLogLevel
@@ -104,7 +105,8 @@ namespace ProxiFyre.Configuration
         {
             string canonical;
             if (!ConfigurationNormalizer.TryGetCanonicalTransport(value, out canonical))
-                throw new InvalidOperationException("socks5Transport must be TCP or TLS.");
+                throw new InvalidOperationException("socks5Transport must be TCP, TLS or HTTPS.");
+            if (canonical == "HTTPS") return Socks5TransportKind.Https;
             return canonical == "TLS" ? Socks5TransportKind.Tls : Socks5TransportKind.Tcp;
         }
     }

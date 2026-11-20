@@ -2228,10 +2228,8 @@ namespace ProxiFyreUI.Forms
 
         private static string FormatTransport(string transport)
         {
-            return string.Equals(transport, "TLS", StringComparison.OrdinalIgnoreCase) ||
-                   (!string.IsNullOrWhiteSpace(transport) && transport.IndexOf("TLS", StringComparison.OrdinalIgnoreCase) >= 0)
-                ? "TLS"
-                : "TCP";
+            string canonical;
+            return ConfigurationNormalizer.TryGetCanonicalTransport(transport, out canonical) ? canonical : transport;
         }
 
         private static string FormatValues(IList<string> values, string fallback)

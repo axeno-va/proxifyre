@@ -69,7 +69,8 @@ enum class socks5_transport_mx : uint8_t
     /// <summary>Plain TCP transport.</summary>
     tcp = 0,
     /// <summary>TLS-wrapped TCP transport.</summary>
-    tls = 1
+    tls = 1,
+    https = 2
 };
 
 /**

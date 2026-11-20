@@ -66,6 +66,32 @@ Process ownership lookup is best effort for a standard user. ProxiFyre can route
 | `excludes` | Process names or paths that always bypass proxy routing. |
 | `dns` | Optional global DNS routing. Omitted means `Direct`. See [DNS routing](#dns-routing). |
 
+## HTTPS proxy (HTTP/1.1 CONNECT over TLS)
+
+Select **HTTPS proxy (CONNECT)** in the rule editor and enter the proxy hostname,
+port and optional Basic username and password. The hostname should match the proxy
+certificate. For JSON configuration, use the existing endpoint and transport keys:
+
+```json
+{
+  "appNames": ["firefox.exe"],
+  "socks5ProxyEndpoint": "proxy.example.com:443",
+  "socks5Transport": "HTTPS",
+  "supportedProtocols": ["TCP"],
+  "username": "example-user",
+  "password": "example-password"
+}
+```
+
+The client verifies the proxy certificate before sending Basic credentials (UTF-8).
+Omit both credentials for an anonymous proxy. The CONNECT target is the destination
+IP and port, including brackets for IPv6. The proxy must permit CONNECT to that target.
+Select TCP only. The rule blocks matched application UDP (including normal QUIC) so
+the application can retry over TCP. The existing DNS, LAN bypass, ownership and
+fragment handling exceptions still apply.
+A DNS Proxy policy requires a separate rule that supports UDP and TCP.
+Credentials are stored in the local configuration in plaintext.
+
 ## Routing rule properties
 
 | Property | Description |
@@ -73,8 +99,8 @@ Process ownership lookup is best effort for a standard user. ProxiFyre can route
 | `id` | Optional stable identifier used to reference this rule's proxy, for example from `dns.proxyId`. 1–64 letters, digits, `-`, `_`, or `.`; unique, case-insensitive. Unlike the rule position it survives reordering. An empty or whitespace id means no id. An invalid or duplicate id is an error only when `dns.proxyId` in `Proxy` mode refers to it; otherwise it is reported as a warning, has no effect, and is removed when the GUI saves the configuration. Two exceptions: every rule with an id that `dns.proxyId` names keeps it, and of rules sharing any other valid id, the first keeps it. |
 | `appNames` | Application names or paths matched by this rule. An explicit empty string is the catch-all. |
 | `socks5ProxyEndpoint` | SOCKS5 hostname or IPv4 address plus port, for example `proxy.example.com:1080`. |
-| `username`, `password` | Optional SOCKS5 authentication. Configure both or neither. |
-| `socks5Transport` | `TCP` for normal SOCKS5 or `TLS` for SOCKS5-over-TLS. Default: `TCP`. |
+| `username`, `password` | Optional proxy authentication. Configure both or neither. |
+| `socks5Transport` | `TCP` for normal SOCKS5, `TLS` for SOCKS5-over-TLS, or `HTTPS` for HTTP CONNECT over TLS. Default: `TCP`. |
 | `tlsServerName` | TLS SNI and certificate-validation name. Defaults to the endpoint hostname. |
 | `tlsPinnedSha256` | Optional SHA-256 fingerprint of the expected leaf certificate. |
 | `tlsAllowInvalidCertificate` | Disables normal certificate validation. Default: `false`; avoid this without a pin. |

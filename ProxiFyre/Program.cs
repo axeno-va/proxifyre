@@ -144,7 +144,7 @@ namespace ProxiFyre
                 if (proxy.ToInt64() == -1)
                 {
                     LoggerInstance.Warn(
-                        $"Failed to create SOCKS5 proxy for endpoint {appSettings.Socks5ProxyEndpoint}; skipping its application associations.");
+                        $"Failed to create proxy for endpoint {appSettings.Socks5ProxyEndpoint}; skipping its application associations.");
                     continue;
                 }
 
@@ -156,7 +156,7 @@ namespace ProxiFyre
                 var addressFamilies = appSettings.SupportedAddressFamilies != null && appSettings.SupportedAddressFamilies.Count > 0
                     ? string.Join(", ", appSettings.SupportedAddressFamilies)
                     : "IPv4, IPv6";
-                var transport = transportSelection == Socks5TransportKind.Tls
+                var transport = transportSelection == Socks5TransportKind.Https ? "HTTPS" : transportSelection == Socks5TransportKind.Tls
                     ? "SOCKS5Tls"
                     : "SOCKS5";
                 foreach (var appName in appSettings.AppNames)
@@ -353,6 +353,7 @@ namespace ProxiFyre
 
         private static Socks5TransportEnum MapTransport(Socks5TransportKind transport)
         {
+            if (transport == Socks5TransportKind.Https) return Socks5TransportEnum.HTTPS;
             return transport == Socks5TransportKind.Tls
                 ? Socks5TransportEnum.TLS
                 : Socks5TransportEnum.TCP;

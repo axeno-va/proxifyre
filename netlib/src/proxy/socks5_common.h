@@ -17,7 +17,8 @@ namespace proxy
     enum class socks5_transport : uint8_t
     {
         tcp = 0,
-        tls = 1
+        tls = 1,
+        https = 2
     };
 
     /**
@@ -40,7 +41,7 @@ namespace proxy
 
         [[nodiscard]] bool is_tls() const noexcept
         {
-            return transport == socks5_transport::tls;
+            return transport == socks5_transport::tls || transport == socks5_transport::https;
         }
     };
 

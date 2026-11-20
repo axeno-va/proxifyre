@@ -112,6 +112,12 @@ The GUI manages the existing engine rather than processing packets itself. It ca
 
 For path discovery, rollback behavior, service controls, log following, notification-area behavior, troubleshooting, and release validation, see the [GUI documentation](docs/gui.md).
 
+## HTTPS proxies
+
+Choose **HTTPS proxy (CONNECT)** in a routing rule for TCP applications. Enter
+the HTTPS proxy host and port, plus the username and password if it requires
+Basic authentication. See the [JSON example and limitations](docs/configuration.md#https-proxy-http11-connect-over-tls).
+
 ## SOCKS5 over TLS
 
 Set `socks5Transport` to `"TLS"` to protect the SOCKS5 TCP connection and UDP `ASSOCIATE` control channel. Public certificates use normal Windows certificate and hostname validation. For a self-signed endpoint, prefer an exact `tlsPinnedSha256` leaf-certificate pin instead of disabling certificate validation.

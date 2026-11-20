@@ -16,7 +16,7 @@ namespace ProxiFyreUI.Infrastructure
 
             string canonicalTransport;
             return ConfigurationNormalizer.TryGetCanonicalTransport(transport, out canonicalTransport) &&
-                   string.Equals(canonicalTransport, "TLS", StringComparison.Ordinal);
+                   (canonicalTransport == "TLS" || canonicalTransport == "HTTPS");
         }
 
         public static bool RequiresConfirmation(bool tlsSelected, bool allowInvalidCertificate,

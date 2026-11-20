@@ -3,6 +3,13 @@
 #include "socksify_unmanaged.h"
 #include <exception>
 
+static std::string basic_utf8(System::String^ value)
+{
+    auto bytes = System::Text::Encoding::UTF8->GetBytes(value);
+    pin_ptr<System::Byte> first = &bytes[0];
+    return std::string(reinterpret_cast<const char*>(static_cast<unsigned char*>(first)), bytes->Length);
+}
+
 // ReSharper disable CppInconsistentNaming
 
 /// <summary>
@@ -311,6 +318,9 @@ IntPtr Socksifier::Socksifier::AddSocks5Proxy(String^ endpoint, String^ username
     auto transport_mx = socks5_transport_mx::tcp;
     switch (transport)
     {
+    case Socks5TransportEnum::HTTPS:
+        transport_mx = socks5_transport_mx::https;
+        break;
     case Socks5TransportEnum::TLS:
         transport_mx = socks5_transport_mx::tls;
         break;
@@ -332,8 +342,8 @@ IntPtr Socksifier::Socksifier::AddSocks5Proxy(String^ endpoint, String^ username
             protocols_mx,
             address_families_mx,
             start,
-            msclr::interop::marshal_as<std::string>(username),
-            msclr::interop::marshal_as<std::string>(password),
+            transport == Socks5TransportEnum::HTTPS ? basic_utf8(username) : msclr::interop::marshal_as<std::string>(username),
+            transport == Socks5TransportEnum::HTTPS ? basic_utf8(password) : msclr::interop::marshal_as<std::string>(password),
             transport_mx,
             tls_server_name_mx,
             tls_pinned_sha256_mx,

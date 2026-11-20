@@ -242,9 +242,25 @@ namespace ProxiFyre.Tests
         public void InvalidTransportIsAnError()
         {
             var rule = TestModels.ValidRule();
-            rule.Socks5Transport = "HTTPS";
+            rule.Socks5Transport = "SSH";
 
             HasIssue(_validator.ValidateRule(rule), "TRANSPORT_UNKNOWN", ValidationSeverity.Error);
+        }
+
+        [Test]
+        public void HttpsConnectAcceptsBasicCredentialsAndRequiresTcpOnly()
+        {
+            var rule = TestModels.ValidRule();
+            rule.Socks5Transport = "https";
+            rule.SupportedProtocols = new List<string> { "TCP" };
+            rule.Username = "пользователь";
+            rule.Password = "pass:word";
+            Assert.That(_validator.ValidateRule(rule).IsValid, Is.True);
+            Assert.That(ConfigurationValueParser.GetTransport("https"), Is.EqualTo(Socks5TransportKind.Https));
+            rule.SupportedProtocols.Add("UDP");
+            HasIssue(_validator.ValidateRule(rule), "HTTPS_REQUIRES_TCP", ValidationSeverity.Error);
+            rule.Username = "user:name";
+            HasIssue(_validator.ValidateRule(rule), "BASIC_USERNAME_COLON", ValidationSeverity.Error);
         }
 
         [Test]

@@ -2213,6 +2213,12 @@ namespace proxy
                     ? protocol_supports_tcp(proxy_protocols_[proxy_id])
                     : protocol_supports_udp(proxy_protocols_[proxy_id]));
 
+            if constexpr (Transport == owner_transport::udp)
+            {
+                target.block_unsupported_transport = proxy_id < proxy_session_settings_.size() &&
+                    proxy_session_settings_[proxy_id].upstream_options.transport == socks5_transport::https;
+            }
+
             target.family_supported = proxy_id >= proxy_address_families_.size() ||
                 (Family == owner_family::ipv4
                     ? family_supports_ipv4(proxy_address_families_[proxy_id])

@@ -77,12 +77,12 @@ namespace ProxiFyreUI.Forms
             string canonicalTransport;
             if (ConfigurationNormalizer.TryGetCanonicalTransport(rule.Socks5Transport, out canonicalTransport))
             {
-                transportComboBox.SelectedIndex = canonicalTransport == "TLS" ? 1 : 0;
+                transportComboBox.SelectedIndex = canonicalTransport == "HTTPS" ? 2 : canonicalTransport == "TLS" ? 1 : 0;
             }
             else
             {
                 transportComboBox.Items.Add("Unsupported value: " + rule.Socks5Transport);
-                transportComboBox.SelectedIndex = 2;
+                transportComboBox.SelectedIndex = transportComboBox.Items.Count - 1;
             }
             tlsServerNameTextBox.Text = rule.TlsServerName ?? string.Empty;
             tlsPinTextBox.Text = rule.TlsPinnedSha256 ?? string.Empty;
@@ -108,7 +108,8 @@ namespace ProxiFyreUI.Forms
             candidate.Socks5ProxyEndpoint = hostTextBox.Text.Trim() + ":" + decimal.ToInt32(portNumeric.Value);
             candidate.Username = usernameTextBox.Text;
             candidate.Password = passwordTextBox.Text;
-            candidate.Socks5Transport = transportComboBox.SelectedIndex == 1 ? "TLS" :
+            candidate.Socks5Transport = transportComboBox.SelectedIndex == 2 ? "HTTPS" :
+                transportComboBox.SelectedIndex == 1 ? "TLS" :
                 transportComboBox.SelectedIndex == 0 ? "TCP" : ResultRule?.Socks5Transport;
             candidate.TlsServerName = EmptyToNull(tlsServerNameTextBox.Text);
             candidate.TlsPinnedSha256 = EmptyToNull(ConfigurationNormalizer.NormalizeFingerprint(tlsPinTextBox.Text));
@@ -133,7 +134,7 @@ namespace ProxiFyreUI.Forms
             var host = hostTextBox.Text.Trim();
             if (host.Length == 0)
             {
-                errorProvider.SetError(hostTextBox, "Enter the upstream SOCKS5 host.");
+                errorProvider.SetError(hostTextBox, "Enter the upstream proxy host.");
                 blocking = true;
             }
             else
@@ -189,15 +190,15 @@ namespace ProxiFyreUI.Forms
                 blocking = true;
             }
 
-            if (transportComboBox.SelectedIndex != 0 && transportComboBox.SelectedIndex != 1)
+            if (transportComboBox.SelectedIndex < 0 || transportComboBox.SelectedIndex > 2)
             {
-                errorProvider.SetError(transportComboBox, "Choose TCP or TLS to replace the unsupported transport value.");
-                warnings.Add("Error: The loaded SOCKS5 transport value is unsupported; choose TCP or TLS.");
+                errorProvider.SetError(transportComboBox, "Choose TCP, TLS or HTTPS to replace the unsupported transport value.");
+                warnings.Add("Error: The loaded proxy transport value is unsupported; choose TCP, TLS or HTTPS.");
                 blocking = true;
             }
 
             var normalizedPin = ConfigurationNormalizer.NormalizeFingerprint(tlsPinTextBox.Text);
-            if (transportComboBox.SelectedIndex == 1 && normalizedPin.Length > 0 &&
+            if (TlsSelected && normalizedPin.Length > 0 &&
                 (normalizedPin.Length != 64 || normalizedPin.Any(character => !Uri.IsHexDigit(character))))
             {
                 errorProvider.SetError(tlsPinTextBox, "A certificate pin must contain exactly 64 hexadecimal SHA-256 characters.");
@@ -329,9 +330,20 @@ namespace ProxiFyreUI.Forms
             ValidateInput();
         }
 
+        private bool TlsSelected => transportComboBox.SelectedIndex == 1 || transportComboBox.SelectedIndex == 2;
+
         private void UpdateTransportControls()
         {
-            var tls = transportComboBox.SelectedIndex == 1;
+            var tls = TlsSelected;
+            var https = transportComboBox.SelectedIndex == 2;
+            tcpCheckBox.Enabled = udpCheckBox.Enabled = !https;
+            if (https)
+            {
+                tcpCheckBox.Checked = true;
+                udpCheckBox.Checked = false;
+            }
+            trafficNoteLabel.Text = https ? "HTTPS CONNECT routes TCP. Matched application UDP is blocked." :
+                "TLS protects the SOCKS5 control connection; it does not encrypt UDP payload datagrams.";
             tlsServerNameLabel.Enabled = tls;
             tlsServerNameTextBox.Enabled = tls;
             tlsPinLabel.Enabled = tls;
@@ -351,7 +363,7 @@ namespace ProxiFyreUI.Forms
         private void ConfirmInvalidCertificateIfNeeded()
         {
             if (_initializing || !InvalidCertificateConfirmationPolicy.RequiresConfirmation(
-                    transportComboBox.SelectedIndex == 1,
+                    TlsSelected,
                     allowInvalidCertificateCheckBox.Checked,
                     _confirmedInvalidCertificate))
                 return;

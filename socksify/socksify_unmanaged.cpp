@@ -270,9 +270,11 @@ LONG_PTR socksify_unmanaged::add_socks5_proxy(
     using namespace std::string_literals;
     std::optional<std::pair<std::string, std::string>> cred{ std::nullopt };
 
-    if (login.empty() != password.empty() ||
-        login.size() > proxy::socks5_username_max_length ||
-        password.size() > proxy::socks5_username_max_length)
+    const bool https = transport == socks5_transport_mx::https;
+    const size_t credential_limit = https ? 4096 : proxy::socks5_username_max_length;
+    if (login.empty() != password.empty() || login.size() > credential_limit ||
+        password.size() > credential_limit || (https && (protocol != supported_protocols_mx::tcp ||
+        login.find(':') != std::string::npos)))
     {
         return -1;
     }
@@ -314,8 +316,9 @@ LONG_PTR socksify_unmanaged::add_socks5_proxy(
     proxy::socks5_upstream_options upstream_options{};
     switch (transport)
     {
+    case socks5_transport_mx::https:
     case socks5_transport_mx::tls:
-        upstream_options.transport = proxy::socks5_transport::tls;
+        upstream_options.transport = https ? proxy::socks5_transport::https : proxy::socks5_transport::tls;
         upstream_options.tls.server_name = tls_server_name;
         upstream_options.tls.pinned_cert_sha256 = tls_pinned_cert_sha256;
         upstream_options.tls.allow_invalid_certificate = tls_allow_invalid_certificate;

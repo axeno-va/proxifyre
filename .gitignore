@@ -70,3 +70,6 @@ socksify/x64/
 socksify/Win32/
 socksify/ARM64/
 *.aps
+
+# Local proxy credentials
+/proxy.env
